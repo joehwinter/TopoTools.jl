@@ -39,13 +39,13 @@ function projector(H::Matrix, bands :: UnitRange{Integer})
   return kets*bras 
 end 
 
-function gsEigs(H :: Matrix,nocc :: Integer )
-    vecs = eigen(H)
+function gsEigs(H :: AbstractMatrix,nocc :: Integer )
+    vecs = eigvecs(H)
     return vecs[:, 1:nocc]
 end
 
-function gsEigs(H :: Matrix, bands :: UnitRange{Integer})
-    vecs = eigen(H)
+function gsEigs(H :: AbstractMatrix, bands :: UnitRange{Integer})
+    vecs = eigvecs(H)
     return vecs[:, bands]
 end
 
@@ -67,10 +67,10 @@ end
 
 hmesh1D(H:: Function,params, mesh :: Vector{AbstractVector}) = [Hermitian(H(mesh[1],mesh[2],params...)) for i in mesh]
 hmesh1D(H :: Function, params, mesh :: StepRangeLen) = [Hermitian(H(k,params...)) for k in mesh] 
-hmesh1D(H :: Function, params, step :: Integer) = [Hermitian(H(k,params...)) for k in -pi:step:pi] 
+hmesh1D(H :: Function, params, step :: Float64) = [Hermitian(H(k,params...)) for k in -pi:step:pi] 
 hmesh2D(H :: Function, params, Xmesh :: StepRangeLen, Ymesh :: StepRangeLen) = [Hermitian(H(kx,ky,params...)) for kx in Xmesh, ky in Ymesh]
-hmesh2D(H :: Function, params, Xstep :: Integer, Ystep :: Integer) = [Hermitian(H(kx,ky,params...)) for kx in -pi:Xstep:pi, ky in -pi:Ystep:pi]
-hmesh2D(H :: Function, params, step :: Integer) = [Hermitian(H(kx,ky,params...)) for kx in -pi:step:pi, ky in -pi:step:pi]
+hmesh2D(H :: Function, params, Xstep :: Float64, Ystep :: Float64) = [Hermitian(H(kx,ky,params...)) for kx in -pi:Xstep:pi, ky in -pi:Ystep:pi]
+hmesh2D(H :: Function, params, step :: Float64) = [Hermitian(H(kx,ky,params...)) for kx in -pi:step:pi, ky in -pi:step:pi]
 
 spectrum(Mmesh :: Vector) = reduce(hcat,eigvals.(Mmesh))'
 
