@@ -3,7 +3,7 @@ module TopoTools
 using BlockArrays
 using LinearAlgebra
 
-export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D, spectrum, bcurv, wilsonLoop, paulis, lineMesh 
+export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh 
 #Hamiltonian Contructors 
 
 struct Hopping
@@ -39,13 +39,13 @@ function projector(H::Matrix, bands :: UnitRange{Integer})
   return kets*bras 
 end 
 
-function gsEigs(H :: Matrix,nocc :: Integer )
-    vecs = eigen(H)
+function gsEigs(H :: AbstractMatrix,nocc :: Integer )
+    vecs = eigvecs(H)
     return vecs[:, 1:nocc]
 end
 
-function gsEigs(H :: Matrix, bands :: UnitRange{Integer})
-    vecs = eigen(H)
+function gsEigs(H :: AbstractMatrix, bands :: UnitRange{Integer})
+    vecs = eigvecs(H)
     return vecs[:, bands]
 end
 
@@ -67,13 +67,12 @@ end
 
 hmesh1D(H:: Function,params, mesh :: Vector{AbstractVector}) = [Hermitian(H(mesh[1],mesh[2],params...)) for i in mesh]
 hmesh1D(H :: Function, params, mesh :: StepRangeLen) = [Hermitian(H(k,params...)) for k in mesh] 
-hmesh1D(H :: Function, params, step :: Integer) = [Hermitian(H(k,params...)) for k in -pi:step:pi] 
+hmesh1D(H :: Function, params, step :: Float64) = [Hermitian(H(k,params...)) for k in -pi:step:pi] 
 hmesh2D(H :: Function, params, Xmesh :: StepRangeLen, Ymesh :: StepRangeLen) = [Hermitian(H(kx,ky,params...)) for kx in Xmesh, ky in Ymesh]
-hmesh2D(H :: Function, params, Xstep :: Integer, Ystep :: Integer) = [Hermitian(H(kx,ky,params...)) for kx in -pi:Xstep:pi, ky in -pi:Ystep:pi]
-hmesh2D(H :: Function, params, step :: Integer) = [Hermitian(H(kx,ky,params...)) for kx in -pi:step:pi, ky in -pi:step:pi]
+hmesh2D(H :: Function, params, Xstep :: Float64, Ystep :: Float64) = [Hermitian(H(kx,ky,params...)) for kx in -pi:Xstep:pi, ky in -pi:Ystep:pi]
+hmesh2D(H :: Function, params, step :: Float64) = [Hermitian(H(kx,ky,params...)) for kx in -pi:step:pi, ky in -pi:step:pi]
 
-spectrum(Mmesh :: Vector) = reduce(hcat,eigvals.(Mmesh))'
-
+spectrum(Mmesh :: Vector{Hermitian{ComplexF64, Matrix{ComplexF64}}}) = reduce(hcat,eigvals.(Mmesh))'
 #code for 2D momentum space 
 
 function bcurv(hmesh :: AbstractArray,nocc)
@@ -98,24 +97,31 @@ end
 function wilsonLoop(Hmesh :: Vector, Nocc :: Integer)
   W = I
   for H in Hmesh 
-			  P = projector(H, nocc) 
+        P = projector(H, nocc) 
         W = P * W 
   end 
   eigsw = eigvals(W) 
-	data = zeros(length(W))
-	for (i,en) in enumerate(eigsw) 
-		(abs(i) > 10^(-8)) ? data[i] = -imag(log(en))/(2*pi)  : data[i] = 0 
-	end 
-	return chopped 
+  data = zeros(length(W))
+  for (i,en) in enumerate(eigsw) 
+    (abs(i) > 10^(-8)) ? data[i] = -imag(log(en))/(2*pi)  : data[i] = 0 
+  end 
+  return data
 end
 
-#Cylinderical Geomtries 
+#Real Space 
 
-#Open chains 
+mutable struct System 
+    points :: Vector{Vector{Float64}}  
+    hops :: Vector{Vector{Int}} 
+end
 
-#Spin 
+addHop!(system  :: System, hop :: Vector{Int}) = push!(system.hops, hop )
+addPoint!(system  :: System, point :: Vector{AbstractFloat}) = push!(system.points, point )
 
+function construct(system)    
+    
+end
 
 end 
 
-
+ 
