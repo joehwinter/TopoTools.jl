@@ -3,7 +3,7 @@ module TopoTools
 using BlockArrays
 using LinearAlgebra
 
-export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh 
+export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh, Hamiltonian2D 
 #Hamiltonian Contructors 
 
 struct Hopping
@@ -110,17 +110,73 @@ end
 
 #Real Space 
 
-mutable struct System 
-    points :: Vector{Vector{Float64}}  
-    hops :: Vector{Vector{Int}} 
-end
 
-addHop!(system  :: System, hop :: Vector{Int}) = push!(system.hops, hop )
-addPoint!(system  :: System, point :: Vector{AbstractFloat}) = push!(system.points, point )
+# Indexing for rectangular Bravais 
+index(x,norbs) = 1 + norbs*(x-1)
+index(x,y,norbs,Lx) = 1 + norbs*(x-1) + Lx*norbs*(y-1)
+index(x,y,Lx) = x + Lx*(y-1)
 
-function construct(system)    
+#mutable struct System 
+#    points :: Vector{Vector{Float64}}  
+#    hops :: Vector{Vector{Int}} 
+#end
+#
+#addHop!(system  :: System, hop :: Vector{Int}) = push!(system.hops, hop )
+#addPoint!(system  :: System, point :: Vector{AbstractFloat}) = push!(system.points, point )
+
+function Hamiltonian1D(Hin,Vin,L,Hparas,Vparas)
+    Ho = Hin(Hparas...)
+    V = Vin(Vparas...)
+    norbs = size(Ho)[1]
+    Ham = zeros(ComplexF64,L*norbs,L*norbs)
+    dn = (norbs -1)
+    for x in 1:L
+        n = index(x,norbs)
+        nn = index(x+1,norbs)
+        Ham[n:n+dn,n:n+dn] = Ho
+        if x + 1 <= L
+            Ham[nn:nn+dn,n:n+dn] = V' 
+            Ham[n:n+dn,nn:nn+dn] = V 
+        end
+    end 
     
+    return Hermitian(Ham)  
 end
+
+
+function Hamiltonian2D(Hf, Vfx, Vfy, Lx, Ly, Hparas, Vxparas, Vyparas; pbc = false) 
+    Ho = Hf(Hparas...) #elipse notation unloads teh tuple into the function
+    Vnx = Vfx(Vxparas...)
+    Vny = Vfy(Vyparas...)
+    norbs = size(Ho)[1] #calculates the number of orbitals in the system shoudl be caredul and introduce a try and catch to check everything is the right size
+    Ham = zeros(ComplexF64,Lx*Ly*norbs,Lx*Ly*norbs) #initialise matrix to input it
+    dn = (norbs -1) #takes into account the indexing of where to put the terms
+    for x in 1:Lx
+        for y in 1:Ly
+            n = index(x,y,norbs,Lx)
+            nnx = index(x+1,y,norbs,Lx)
+            nny = index(x,y+1,norbs,Lx)
+            Ham[n:n+dn,n:n+dn] = Ho
+            if x + 1 <= Lx
+                Ham[nnx:nnx+dn,n:n+dn] = Vnx' 
+                Ham[n:n+dn,nnx:nnx+dn] = Vnx
+
+            end
+            if y + 1 <= Ly 
+                Ham[nny:nny+dn,n:n+dn] = Vny' 
+                Ham[n:n+dn,nny:nny+dn] = Vny 
+            end 
+            if (pbc == true && y==1)
+                start = index(x,1,norbs,Lx) 
+                fin = index(x,Ly,norbs,Ly)
+                Ham[fin:fin+dn, start:start+dn] = Vny'
+                Ham[start:(start + dn), fin:(fin+dn)] = Vny 
+            end 
+        end 
+    end
+    return Hermitian(Ham) #A julia thing, i declare Hamiltonian as Hermitian to make eigs work faster
+end
+
 
 end 
 
