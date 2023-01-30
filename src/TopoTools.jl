@@ -4,15 +4,11 @@ using BlockArrays
 using LinearAlgebra
 
 export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh, Hamiltonian2D 
-#Hamiltonian Contructors 
-
-struct Hopping
-	HopInt :: Function 
-	vector :: Vector 
-end 
-
-function OBCconstruct(Lx :: Int, H :: Function,Hops :: Tuple{Hopping}, params)	
-end
+#
+# Indexing for rectangular Bravais 
+index(x,norbs) = 1 + norbs*(x-1)
+index(x,y,norbs,Lx) = 1 + norbs*(x-1) + Lx*norbs*(y-1)
+index(x,y,Lx) = x + Lx*(y-1)
 
 #Linear Algebra Code 
 
@@ -92,6 +88,14 @@ function bcurv(hmesh :: AbstractArray,nocc)
     return (dmesh/(2*pi), sum(dmesh)/(2*pi))
 end
 
+function layerbcurv(hmesh :: AbstracArray, nocc, layer)
+    Lx = Integer(size(hmesh[1],1)/nocc)
+    lproj = diagm(zeros(Lx*nocc))
+    lproj[index(layer,)]
+    
+
+
+
 #Code for 1D momentum space 
 #
 function wilsonLoop(Hmesh :: Vector, Nocc :: Integer)
@@ -111,10 +115,6 @@ end
 #Real Space 
 
 
-# Indexing for rectangular Bravais 
-index(x,norbs) = 1 + norbs*(x-1)
-index(x,y,norbs,Lx) = 1 + norbs*(x-1) + Lx*norbs*(y-1)
-index(x,y,Lx) = x + Lx*(y-1)
 
 #mutable struct System 
 #    points :: Vector{Vector{Float64}}  
