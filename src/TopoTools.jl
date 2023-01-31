@@ -18,10 +18,10 @@ function arrayFlatten!(M :: Matrix)
 	Array(mortar(M))
 end 
 
-function Rotate(M)
-     U = [I(2)  zeros(2,2); zeros(2,2)  sy]
-     return U'*M*U
-end 
+#function Rotate(M)
+#     U = [I(2)  zeros(2,2); zeros(2,2)  sy]
+#     return U'*M*U
+#end 
 
 function projector(H:: Matrix, nocc :: Integer)
 	kets = eigvecs(H)[:,1:nocc]
@@ -88,17 +88,38 @@ function bcurv(hmesh :: AbstractArray,nocc)
     return (dmesh/(2*pi), sum(dmesh)/(2*pi))
 end
 
-function layerbcurv(hmesh :: AbstracArray, nocc, layer)
-    Lx = Integer(size(hmesh[1],1)/nocc)
-    lproj = diagm(zeros(Lx*nocc))
-    lproj[index(layer,)]
+function layerbcurv(hmesh :: AbstractArray,norb, layer)
+    Lx = Integer(size(hmesh[1],1)/norb)
+    n = index(layer,norm)    
+    lproj = zeros(Lx*norb)
+    lproj[n:n+(norb-1)] = ones(norb)
+    lproj = diagm(lproj)
     
+    nocc = (Lx*norb)/2 
+
+    vmesh = (gsEigs.(hmesh,nocc))
+    vmeshx = circshift(vmesh,(0,-1))
+    vmeshxy = circshift(vmesh,(-1,-1))
+    vmeshy = circshift(vmesh,(-1,0))
+    dmesh = zeros(size(vmesh))
+    for i in 1:size(vmesh,1), j in 1:size(vmesh,2)
+        p12 = ( vmesh[i,j]' * lproj *vmeshx[i,j])
+        p23 =  (vmeshx[i,j]' * vmeshxy[i,j])
+        p34 = (vmeshxy[i,j]' * vmeshy[i,j])
+        p41 =  (vmeshy[i,j]' * vmesh[i,j])
+        dety = det(p12*p23*p34*p41)
+        (abs(dety) <  10^(-5)) ? dmesh[i,j] = 0 : dmesh[i,j] = -imag(log(complex(dety)))
+    end 
+    return (dmesh/(2*pi), sum(dmesh)/(2*pi))
+end
+
+
 
 
 
 #Code for 1D momentum space 
 #
-function wilsonLoop(Hmesh :: Vector, Nocc :: Integer)
+function wilsonLoop(Hmesh :: Vector, nocc :: Integer)
   W = I
   for H in Hmesh 
         P = projector(H, nocc) 
