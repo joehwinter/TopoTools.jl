@@ -3,8 +3,11 @@ module TopoTools
 using BlockArrays
 using LinearAlgebra
 
-export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh, Hamiltonian2D 
-#
+export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh, Hamiltonian2D, layerbcurv, SpinTrace!, MatrixSpinTrace, layerEntHam
+
+include("spinUtils.jl")
+
+
 # Indexing for rectangular Bravais 
 index(x,norbs) = 1 + norbs*(x-1)
 index(x,y,norbs,Lx) = 1 + norbs*(x-1) + Lx*norbs*(y-1)
@@ -90,12 +93,12 @@ end
 
 function layerbcurv(hmesh :: AbstractArray,norb, layer)
     Lx = Integer(size(hmesh[1],1)/norb)
-    n = index(layer,norm)    
+    n = index(layer,norb)    
     lproj = zeros(Lx*norb)
     lproj[n:n+(norb-1)] = ones(norb)
     lproj = diagm(lproj)
     
-    nocc = (Lx*norb)/2 
+    nocc = Integer((Lx*norb)/2) 
 
     vmesh = (gsEigs.(hmesh,nocc))
     vmeshx = circshift(vmesh,(0,-1))
@@ -107,8 +110,8 @@ function layerbcurv(hmesh :: AbstractArray,norb, layer)
         p23 =  (vmeshx[i,j]' * vmeshxy[i,j])
         p34 = (vmeshxy[i,j]' * vmeshy[i,j])
         p41 =  (vmeshy[i,j]' * vmesh[i,j])
-        dety = det(p12*p23*p34*p41)
-        (abs(dety) <  10^(-5)) ? dmesh[i,j] = 0 : dmesh[i,j] = -imag(log(complex(dety)))
+        dmesh[i,j] = imag(tr(p12*p23*p34*p41)) 
+    #    (abs(dety) <  10^(-5)) ? dmesh[i,j] = 0 : dmesh[i,j] = -imag(log(complex(dety)))
     end 
     return (dmesh/(2*pi), sum(dmesh)/(2*pi))
 end
