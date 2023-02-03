@@ -3,7 +3,7 @@ module TopoTools
 using BlockArrays
 using LinearAlgebra
 
-export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh, Hamiltonian2D, layerbcurv, SpinTrace!, MatrixSpinTrace, layerEntHam
+export arrayFlatten!, Rotate, projector, gsEigs, hmesh1D, hmesh2D,spectrum, bcurv, wilsonLoop, paulis, lineMesh, Hamiltonian2D, layerbcurv, SpinTrace!, MatrixSpinTrace, layerEntHam, chernNums1D
 
 include("spinUtils.jl")
 
@@ -97,9 +97,7 @@ function layerbcurv(hmesh :: AbstractArray,norb, layer)
     lproj = zeros(Lx*norb)
     lproj[n:n+(norb-1)] = ones(norb)
     lproj = diagm(lproj)
-    
     nocc = Integer((Lx*norb)/2) 
-
     vmesh = (gsEigs.(hmesh,nocc))
     vmeshx = circshift(vmesh,(0,-1))
     vmeshxy = circshift(vmesh,(-1,-1))
@@ -115,6 +113,17 @@ function layerbcurv(hmesh :: AbstractArray,norb, layer)
     end 
     return (dmesh/(2*pi), sum(dmesh)/(2*pi))
 end
+
+function chernNums1D(hmesh :: AbstractArray, norb)
+    Lx = Integer(size(hmesh[1],1)/norb)
+    cherns = Vector{Float64}(undef,Lx)
+    for i in 1:Lx
+    println(cherns)
+        cherns[i] = layerbcurv(hmesh,norb,i)[2] 
+    end 
+    return cherns 
+end 
+
 
 
 
@@ -178,6 +187,8 @@ function Hamiltonian2D(Hf, Vfx, Vfy, Lx, Ly, Hparas, Vxparas, Vyparas; pbc = fal
     for x in 1:Lx
         for y in 1:Ly
             n = index(x,y,norbs,Lx)
+    println(vmesh)
+    t
             nnx = index(x+1,y,norbs,Lx)
             nny = index(x,y+1,norbs,Lx)
             Ham[n:n+dn,n:n+dn] = Ho
